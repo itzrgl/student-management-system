@@ -1,0 +1,57 @@
+<script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+
+function sendScoreToPHP(score) {
+    $.ajax({
+        type: "POST",
+        url: "c_inter.php", // Replace with the correct path to your PHP file
+        data: { userScore: score },
+        success: function (response) {
+            console.log(response); // Output the response from PHP (for debugging)
+        },
+        error: function (error) {
+            console.error("Error sending score to PHP: ", error);
+        }
+    });
+}
+
+sendScoreToPHP(scoreCount);
+
+<?php
+include '../../db.php';
+
+// Start the session (assuming you are using sessions for tracking user information)
+session_start();
+
+$email = $_SESSION['email'];
+$userScore = $_POST['userScore'];
+
+// Check if the user with the given email already exists in the database
+$existingScoreQuery = "SELECT c_inter FROM scores WHERE email = '$email'";
+$existingScoreResult = $con->query($existingScoreQuery);
+
+if ($existingScoreResult->num_rows > 0) {
+    // User exists, compare the scores
+    $row = $existingScoreResult->fetch_assoc();
+    $existingScore = $row['c_inter'];
+
+    // Update the score only if the new score is higher
+    if ($userScore > $existingScore) {
+        $updateScoreQuery = "UPDATE scores SET c_inter = $userScore WHERE email = '$email'";
+        if ($con->query($updateScoreQuery) === TRUE) {
+            echo "Score updated successfully";
+        } else {
+            echo "Error updating score: " . $con->error;
+        }
+    } else {
+        echo "User already has a higher or equal score";
+    }
+} else {
+    // User doesn't exist, insert a new record
+    $insertScoreQuery = "INSERT INTO scores (email, c_inter) VALUES ('$email', $userScore)";
+    if ($con->query($insertScoreQuery) === TRUE) {
+        echo "Score stored successfully";
+    } else {
+        echo "Error storing score: " . $con->error;
+    }
+}
+?>
